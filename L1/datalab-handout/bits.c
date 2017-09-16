@@ -1,7 +1,7 @@
 /* 
  * CS:APP Data Lab 
  * 
- * <Longyi Cheng, LCHENG>
+ * Longyi Cheng, LCHENG
  * 
  * bits.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
@@ -141,7 +141,9 @@ NOTES:
  *   Rating: 1
  */
 int bitMatch(int x, int y) {
-  /* De Morgan's laws: ~(x | y) = ~x & ~y */
+  /*
+   * De Morgan's laws: ~(x | y) = ~x & ~y
+   */
   int sameBit1 = x & y;
   int sameBit0 = ~x & ~y;
   return ~((~sameBit0)&(~sameBit1));
@@ -170,13 +172,15 @@ int copyLSB(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  /* Create a mask 0xAAAAAAAA */
+  /* Create a mask 0xAAAAAAAA 
+   * check if x is same with this mask on odd bits
+   */
   int aa = 0xAA;
   int aa00 = aa << 8;
   int aaaa = aa00 | 0xAA;
   int aaaa0000 = aaaa << 16;
   int aaaaaaaa = aaaa0000 | aaaa;
-  return !(aaaaaaaa ^ x);
+  return !((aaaaaaaa & x) ^ aaaaaaaa);
 }
 /* 
  * conditional - same as x ? y : z 
@@ -205,14 +209,14 @@ int conditional(int x, int y, int z) {
  *   Rating: 4
  */
 int bitParity(int x) {
-  /*
-   * XOR can represent parity calculation, 1 = odd, 0 = even,
-   * odd ^ even = odd, even ^ odd = odd,
-   * even ^ even = even, odd ^ odd = even.
-   * Recursively divide bits into two parts
-   * and XOR two bits next to each other.
-   *
-   */
+ /*
+  * XOR can represent parity calculation, 1 = odd, 0 = even,
+  * odd ^ even = odd, even ^ odd = odd,
+  * even ^ even = even, odd ^ odd = even.
+  * Recursively divide bits into two parts
+  * and XOR two bits next to each other.
+  *
+  */
   int next1 = x >> 1 ^ x;
   int next2 = next1 >> 2 ^ next1;
   int next4 = next2 >> 4 ^ next2;
@@ -228,7 +232,37 @@ int bitParity(int x) {
  *   Rating: 4
  */
 int isPallindrome(int x) {
-    return 2;
+ /*
+  * reverse left part to right by
+  * exchanging left and right parts recursively
+  * then XOR new right part with original right part
+  */
+  int y, mask_ff00ff00, mask_00ff00ff, mask_f0f0f0f0, mask_0f0f0f0f, mask_cccccccc, mask_33333333, mask_aaaaaaaa, mask_55555555, mask_right;
+
+  y = x >> 16;
+
+  mask_ff00ff00 = 0xFF << 8;
+  mask_00ff00ff = ~mask_ff00ff00;
+  y = ((y & mask_ff00ff00) >> 8) | ((y & mask_00ff00ff) << 8);
+
+  mask_f0f0f0f0 = (0xF << 12) + (0xF << 4);
+  mask_0f0f0f0f = ~mask_f0f0f0f0;
+  y = ((y & mask_f0f0f0f0) >> 4) | ((y & mask_0f0f0f0f) << 4);
+
+  mask_cccccccc = (0xCC << 8) + 0xCC;
+  mask_33333333 = ~mask_cccccccc;
+  y = (y & mask_cccccccc) >> 2 | (y & mask_33333333) << 2;
+
+  mask_aaaaaaaa = (0xAA << 8) + 0xAA;
+  mask_55555555 = ~mask_aaaaaaaa;
+  y = ((y & mask_aaaaaaaa) >> 1) | ((y & mask_55555555) << 1);
+
+  mask_right = (0xFF << 8) + 0xFF;
+
+  x = mask_right & x;
+  y = mask_right & y;
+
+  return !(x^y);
 }
 // Two's complement
 /*
@@ -239,9 +273,11 @@ int isPallindrome(int x) {
  *   Rating: 2
  */
 int distinctNegation(int x) {
-  /* */
+  /*
+   * -x = ~x + 1
+   */
   int negativeX = ~x + 1;
-  return negativeX ^ x;
+  return !!(negativeX ^ x);
 }
 /* 
  * dividePower2 - Compute x/(2^n), for 0 <= n <= 30
@@ -252,8 +288,13 @@ int distinctNegation(int x) {
  *   Rating: 2
  */
 int dividePower2(int x, int n) {
-    int sign = x >> 31;
-    return (x >> n) + !!sign;
+/*
+ * add 1 if x less than 0
+ */
+  return ((x + ((x >> 31) & ((1<<n) + ~0))) >> n);
+  // int sign = x >> 31;
+  // return ((~sign) & (x >> n)) | ((sign) & ((x + (1<<n) + ~0) >> n));
+
 }
 /* 
  * fitsBits - return 1 if x can be represented as an 
@@ -265,7 +306,14 @@ int dividePower2(int x, int n) {
  *   Rating: 2
  */
 int fitsBits(int x, int n) {
-  return 2;
+/* 
+ * flip bits if x is negative,
+ * right shift n - 1 bits,
+ * return false if there are still bit of 1 left
+ */
+  int AllLeadingBit = x >> 31;
+  int flipIfNegative = (~x & AllLeadingBit) | (x & ~AllLeadingBit);
+  return !(flipIfNegative >> (n + ~0));
 }
 /* 
  * isGreater - if x > y  then return 1, else return 0 
@@ -275,7 +323,18 @@ int fitsBits(int x, int n) {
  *   Rating: 3
  */
 int isGreater(int x, int y) {
-  return 2;
+/*
+ * if x and y have same sign bits
+ * x > y means (x - y) > 0, so (x + ~y + 1) > 0
+ * then (x + ~y) >= 0, means (x + ~y) >> 31 == 0
+ * else if if x and y have different sign bits
+ * x > y means sign of x is 0 and sign of y is 1
+ */
+  int signX = (x >> 31) & 1;
+  int signY = (y >> 31) & 1;
+  int sameSign = !(signX ^ signY) & !((x + ~y) >> 31);
+  int diffSign = (signX ^ signY) & ((!signX) & signY);
+  return sameSign | diffSign;
 }
 /*
  * trueThreeFourths - multiplies by 3/4 rounding toward 0,
@@ -288,8 +347,17 @@ int isGreater(int x, int y) {
  *   Rating: 4
  */
 int trueThreeFourths(int x)
+/*
+ * only check for last two digits
+ */
 {
-  return 2;
+  int sign = ~(x >> 31);
+  int a = (x >> 2) + (x >> 1);
+  int t = x & 3;
+  int tmp1 = (1 & t);
+  int tmp2 = ((2 & t)>>1);
+  int b = tmp1 + tmp2 + (((~0)  + (!tmp1 & !tmp2))& sign);
+  return a + b;
 }
 //float
 /* 
@@ -304,7 +372,28 @@ int trueThreeFourths(int x)
  *   Rating: 2
  */
 int floatIsEqual(unsigned uf, unsigned ug) {
-    return 2;
+  int fe = uf & 0x7F800000;
+  int fe_all_1 = !(fe ^ 0x7F800000);
+  int fm = uf & 0x007FFFFF;
+  int f_nan = (fm << 9) && fe_all_1;
+
+  int ge = ug & 0x7F800000;
+  int ge_all_1 = !(ge ^ 0x7F800000);
+  int gm = ug & 0x007FFFFF;
+  int g_nan = (gm << 9) && ge_all_1;
+
+  if (((uf << 1) == 0) && ((ug << 1) == 0))
+  {
+    return 1;
+  }
+
+  if (f_nan || g_nan)
+  {
+    return 0;
+  }
+
+  
+  return !(uf ^ ug);
 }
 /* 
  * floatUnsigned2Float - Return bit-level equivalent of expression (float) u
@@ -316,7 +405,55 @@ int floatIsEqual(unsigned uf, unsigned ug) {
  *   Rating: 4
  */
 unsigned floatUnsigned2Float(unsigned u) {
-    return 2;
+
+    int count = 0;
+
+    unsigned v, mask, m, g_mask, r_mask, s_mask, g, r, s, e;
+
+    if (!u)
+    {
+      return 0;
+    }
+
+    v = u;
+
+    while (v >>= 1)
+    {
+        count++;
+    }
+
+    mask = (1 << count) - 1;
+
+    m = mask & u;
+
+    if (count > 23)
+    {
+        g_mask = 1 << (count - 23);
+        r_mask = g_mask >> 1;
+        s_mask = r_mask - 1;
+
+        g = (m & g_mask);
+        r = (m & r_mask);
+        s = (m & s_mask);
+
+        m = m >> (count - 23);
+
+        if (r)
+        {
+            if (s || ((!s) && g))
+            {
+                m = m + 1;
+            }
+        }
+    }
+    else
+    {
+        m = m << (23 - count);
+    }
+    
+    e = (count + 127) << 23;
+
+    return e + m;
 }
 /* 
  * floatScale4 - Return bit-level equivalent of expression 4*f for
@@ -330,5 +467,43 @@ unsigned floatUnsigned2Float(unsigned u) {
  *   Rating: 4
  */
 unsigned floatScale4(unsigned uf) {
-    return 2;
+
+  int s = uf & 0x80000000;
+  unsigned m = uf & 0x007FFFFF;
+  int e = uf & 0x7f800000;
+
+  int e_all_1 = !(e ^ 0x7f800000);
+  int e_nan = e_all_1 && (m << 9);
+
+  if ((uf << 1) == 0)
+  {
+    return uf;
+  }
+
+  if (e_nan)
+  {
+    return uf;
+  }
+
+  if (e)
+  {
+    unsigned ee = e >> 23;
+    unsigned result_ee = ee + 2;
+    unsigned result = (result_ee << 23) | s | m;
+    unsigned boundary = s ? 0xff800000 : 0x7f800000;
+    return (result_ee >= 0x000000ff) ? boundary : result;
+  }
+  else
+  {
+    if (m <= 0x003fffff)
+    {
+      return (m << 2) | s;
+    }
+    else
+    {
+      m = (m << 1) & 0x007FFFFF;
+      e = 0x01000000;
+      return s | e | m;
+    }
+  }
 }
